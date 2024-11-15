@@ -1,0 +1,67 @@
+# Loki Configuration File
+auth_enabled: false  # Disable authentication for now; secure this in production with auth if needed.
+
+server:
+  http_listen_port: 3100  # Default port Loki listens on.
+  log_level: info         # Log level (debug, info, warn, error).
+  grpc_listen_port: 9095  # Port for gRPC connections (optional, mainly used internally).
+
+# Configuration for how Loki stores incoming logs.
+ingester:
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory  # Use in-memory storage for cluster ring data (simplest for single-node setups).
+      replication_factor: 1  # Number of replicas in the cluster; 1 for single-node.
+  chunk_idle_period: 5m  # Time to wait before closing a chunk with no new logs.
+  max_chunk_age: 1h      # Maximum age of a chunk before it's flushed to the object store.
+  chunk_target_size: 1048576  # Target chunk size (1MB).
+  max_transfer_retries: 0     # Retry limit for transferring chunks.
+
+# Where to store the logs (chunks) and index data.
+schema_config:
+  configs:
+    - from: 2023-01-01      # Start date for this schema.
+      store: boltdb-shipper # Use BoltDB with shippers for storing index data.
+      object_store: filesystem # Store data on the filesystem (best for local setup).
+      schema: v11           # Latest schema version for optimal indexing.
+      index:
+        prefix: index_      # Prefix for index files.
+        period: 24h         # Period for rolling new index files.
+
+# Storage paths and local file system usage.
+storage_config:
+  boltdb_shipper:
+    active_index_directory: /loki/index  # Directory for actively written index files.
+    shared_store: filesystem             # Use shared filesystem for storage.
+    cache_location: /loki/cache          # Cache location for faster index queries.
+
+  filesystem:
+    directory: /loki/chunks  # Path to store chunks on the local filesystem.
+
+# How logs are queried and retrieved.
+query_range:
+  align_queries_with_step: true  # Align query results with step intervals.
+  max_retries: 5                 # Retry limit for failed queries.
+  split_queries_by_interval: 15m # Split long queries to improve performance.
+  cache_results: true            # Cache query results to speed up repeated queries.
+
+# Limits to control resource usage.
+limits_config:
+  max_streams_per_user: 1500  # Maximum number of log streams per user.
+  max_entries_per_query: 5000 # Limit the number of log entries returned per query.
+  reject_old_samples: true    # Drop log entries older than the configured limit.
+  reject_old_samples_max_age: 168h # Drop logs older than 7 days (168 hours).
+
+chunk_store_config:
+  max_look_back_period: 0s  # No limit on how far back queries can look.
+
+# Table manager to manage index tables.
+table_manager:
+  retention_deletes_enabled: true   # Enable deletion of old log data.
+  retention_period: 168h           # Retention period of 7 days.
+
+compactor:
+  working_directory: /loki/compactor  # Directory for compacted data.
+  shared_store: filesystem            # Use the filesystem as the shared store.
+  retention_enabled: true             # Ensure data retention policies are active.
