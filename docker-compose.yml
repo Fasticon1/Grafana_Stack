@@ -16,6 +16,9 @@ services:
         limits:
           memory: 2g
           cpus: '1.0'
+        reservations:
+          memory: 1g
+          cpus: '0.5'
 
   # Prometheus Service
   prometheus:
@@ -30,8 +33,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 3g
-          cpus: '1.5'
+          memory: 2g
+          cpus: '1.0'
+        reservations:
+          memory: 1g
+          cpus: '0.5'
 
   # Loki Service (Log aggregation)
   loki:
@@ -47,7 +53,10 @@ services:
       resources:
         limits:
           memory: 3g
-          cpus: '1.5'
+          cpus: '2.0'
+        reservations:
+          memory: 1g
+          cpus: '1.0'
 
   # cAdvisor
   cadvisor:
@@ -92,7 +101,7 @@ services:
   # Open WebUI Service
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
-    container_name: open-webui
+    container_name: open-webui1
     ports:
       - "8080:8080"
     extra_hosts:
@@ -110,6 +119,25 @@ services:
         reservations:
           cpus: '0.50'
           memory: 512M
+
+  # Promtail Service (Log shipping)
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - ${PROMTAIL_DATA_PATH}:/var/lib/promtail
+      - ./promtail-config.yml:/etc/promtail/promtail-config.yaml
+    ports:
+      - "3500:3500"
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: '1.0'
+        reservations:
+          memory: 1g
+          cpus: '0.5'
 
 volumes:
   grafana_data:
