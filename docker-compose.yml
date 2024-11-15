@@ -1,21 +1,21 @@
 services:
   # Grafana Service
   grafana:
-    image: grafana/grafana-oss:10.0.3  # Latest open-source Grafana
+    image: grafana/grafana-oss:10.0.3
     container_name: grafana
     restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_USER=admin  # Admin username
-      - GF_SECURITY_ADMIN_PASSWORD=admin  # Admin password
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
-      - /mnt/nfs/grafana_data:/var/lib/grafana  # NFS share for Grafana data
+      - ${GRAFANA_DATA_PATH}:/var/lib/grafana
     ports:
-      - "3000:3000"  # Expose Grafana port
+      - "3000:3000"
     deploy:
       resources:
         limits:
-          memory: 2g  # Limit Grafana to 2GB of RAM
-          cpus: '1.0'  # Limit Grafana to 1 CPU core
+          memory: 2g
+          cpus: '1.0'
 
   # Prometheus Service
   prometheus:
@@ -23,15 +23,15 @@ services:
     container_name: prometheus
     restart: unless-stopped
     volumes:
-      - /mnt/nfs/prometheus_data:/prometheus  # NFS share for Prometheus data
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml  # Configuration file
+      - ${PROMETHEUS_DATA_PATH}:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
-      - "9090:9090"  # Expose Prometheus port
+      - "9090:9090"
     deploy:
       resources:
         limits:
-          memory: 3g  # Limit Prometheus to 3GB of RAM
-          cpus: '1.5'  # Limit Prometheus to 1.5 CPU cores
+          memory: 3g
+          cpus: '1.5'
 
   # Loki Service (Log aggregation)
   loki:
@@ -39,31 +39,15 @@ services:
     container_name: loki
     restart: unless-stopped
     volumes:
-      - /mnt/nfs/loki_data:/loki  # NFS share for Loki data
-      - ./loki-config.yml:/etc/loki/local-config.yaml  # Loki configuration file
+      - ${LOKI_DATA_PATH}:/loki
+      - ./loki-config.yml:/etc/loki/local-config.yaml
     ports:
-      - "3100:3100"  # Expose Loki port
+      - "3100:3100"
     deploy:
       resources:
         limits:
-          memory: 3g  # Limit Loki to 3GB of RAM
-          cpus: '1.5'  # Limit Loki to 1.5 CPU cores
-
-  # Node Exporter
-  node_exporter:
-    image: prom/node-exporter:latest
-    container_name: node_exporter
-    restart: unless-stopped
-    ports:
-      - "9100:9100"  # Expose Node Exporter port
-    deploy:
-      resources:
-        limits:
-          memory: 200m  # Limit Node Exporter to 200MB of RAM
-          cpus: '0.2'  # Limit Node Exporter to 0.2 CPU cores
-        reservations:
-          memory: 100m  # Request 100MB of RAM
-          cpus: '0.1'  # Request 0.1 CPU cores
+          memory: 3g
+          cpus: '1.5'
 
   # cAdvisor
   cadvisor:
@@ -76,15 +60,15 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
     ports:
-      - "8080:8080"  # Expose cAdvisor port
+      - "8150:8080"
     deploy:
       resources:
         limits:
-          memory: 500m  # Limit cAdvisor to 500MB of RAM
-          cpus: '0.5'  # Limit cAdvisor to 0.5 CPU cores
+          memory: 500m
+          cpus: '0.5'
         reservations:
-          memory: 250m  # Request 250MB of RAM
-          cpus: '0.25'  # Request 0.25 CPU cores
+          memory: 250m
+          cpus: '0.25'
 
   # Tempo Service (Tracing)
   tempo:
@@ -92,21 +76,44 @@ services:
     container_name: tempo
     restart: unless-stopped
     volumes:
-      - /mnt/nfs/tempo_data:/var/lib/tempo
+      - ${TEMPO_DATA_PATH}:/var/lib/tempo
       - ./tempo-config.yml:/etc/tempo/tempo-config.yaml
     ports:
-      - "3200:3200"  # Expose Tempo port
+      - "3200:3200"
     deploy:
       resources:
         limits:
-          memory: 2g  # Limit Tempo to 2GB of RAM
-          cpus: '1.0'  # Limit Tempo to 1 CPU core
+          memory: 2g
+          cpus: '1.0'
         reservations:
-          memory: 1g  # Request 1GB of RAM
-          cpus: '0.5'  # Request 0.5 CPU cores
+          memory: 1g
+          cpus: '0.5'
+
+  # Open WebUI Service
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${OPEN_WEBUI_DATA_PATH}:/app/backend/data
+    restart: unless-stopped
+    environment:
+      - VECTOR_DB=qdrant
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.50'
+          memory: 512M
 
 volumes:
   grafana_data:
   prometheus_data:
   loki_data:
   tempo_data:
+  open-webui:
