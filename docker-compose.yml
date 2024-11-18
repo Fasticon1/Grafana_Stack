@@ -103,14 +103,15 @@ services:
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui1
     ports:
-      - "8080:8080"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "3050:8080"
     volumes:
       - ${OPEN_WEBUI_DATA_PATH}:/app/backend/data
     restart: unless-stopped
     environment:
       - VECTOR_DB=qdrant
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     deploy:
       resources:
         limits:
@@ -119,7 +120,7 @@ services:
         reservations:
           cpus: '0.50'
           memory: 512M
-
+   
   # Promtail Service (Log shipping)
   promtail:
     image: grafana/promtail:latest
