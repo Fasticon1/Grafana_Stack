@@ -98,10 +98,11 @@ services:
           memory: 1g
           cpus: '0.5'
 
-  # Open WebUI Service
+  ## Open WebUI Service
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui1
+    network_mode: "host"
     ports:
       - "3050:8080"
     volumes:
@@ -109,9 +110,9 @@ services:
     restart: unless-stopped
     environment:
       - VECTOR_DB=qdrant
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - VECTOR_DB_HOST=qdrant
+      - VECTOR_DB_PORT=6333
+      - OLLAMA_BASE_URL=http://127.0.0.1:11434
     deploy:
       resources:
         limits:
@@ -120,8 +121,27 @@ services:
         reservations:
           cpus: '0.50'
           memory: 512M
-   
-  # Promtail Service (Log shipping)
+
+  # Replace Milvus service with Qdrant
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ${QDRANT_DATA_PATH}:/qdrant/storage
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+          cpus: '2.0'
+        reservations:
+          memory: 1g
+          cpus: '0.5'
+
+# Promtail Service (Log shipping)
   promtail:
     image: grafana/promtail:latest
     container_name: promtail
@@ -146,3 +166,4 @@ volumes:
   loki_data:
   tempo_data:
   open-webui:
+  qdrant_data:
